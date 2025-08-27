@@ -1,3 +1,18 @@
+# Web extension stuff
+web-ext-config.js
+.web-extension-id
+firefox-profile/
+chrome-profile/
+screenshots/
+store-assets/
+packed/
+releases/
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
 # As we are using pipcompile...
 requirements.txt
 

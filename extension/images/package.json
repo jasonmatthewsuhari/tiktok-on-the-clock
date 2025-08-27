@@ -1,0 +1,9 @@
+{
+  "name": "icon-generator",
+  "version": "1.0.0",
+  "description": "Generate extension icons",
+  "type": "module",
+  "dependencies": {
+    "sharp": "^0.32.0"
+  }
+}
