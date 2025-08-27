@@ -25,5 +25,18 @@ then run source ./setup-bash
 thjen somewhere here, make sure to add kind of like instructions on pushing to the repo -- jut make sure to run the bash one more time so tht we compile the latest requriements
 
 
+DIR STRUCT
+```
+backend/
+data/
+extension/
+models/
+src/
+main.py
+requirements.in
+requirements.txt
+setup.bash
+setup.bat
+```
 
 (can someone make this readme better thanks LOL)
