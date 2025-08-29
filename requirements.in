@@ -1,1 +1,5 @@
 pip-tools
+pandas
+pyyaml
+pathlib2
+typing-extensions

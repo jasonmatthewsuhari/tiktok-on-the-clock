@@ -1,0 +1,48 @@
+pipeline:
+  name: "TikTok Data Processing Pipeline"
+  description: "Pipeline for processing TikTok data through various stages"
+  
+  # Pipeline configuration
+  config:
+    data_dir: "data/"
+    output_dir: "data/output/"
+    log_level: "INFO"
+    
+  # Pipeline stages, corresponding to each one of the Python pipeline layers 
+  # inside of the src/ directory. Simply copy and paste if you want to add a new layer.
+  stages:
+    - name: "01_take_input_csv"
+      module: "src.01_take_input_csv"
+      function: "run"
+      enabled: true
+      config:
+        input_file: "data/input.csv"
+        output_file: "data/stage1_output.csv"
+        # Output will be saved as: stage1_output_YYYYMMDD_HHMMSS.csv
+        
+    - name: "02_rule_based_filtering"
+      module: "src.02_rule_based_filtering"
+      function: "run"
+      enabled: true
+      config:
+        input_file: "data/stage1_output.csv"
+        rules_file: "src/rules.txt"
+        output_file: "data/stage2_output.csv"
+        # Output will be saved as: stage2_output_YYYYMMDD_HHMMSS.csv
+
+    - name: "03_evaluation"
+      module: "src.03_evaluation"
+      function: "run"
+      enabled: true
+      config:
+        input_file: "data/input.csv"
+        stage2_output: "data/stage2_output_*.csv"
+        # Stage 3 will automatically find the most recent stage2_output file
+        # Output: evaluation_metrics.json and evaluation_report.txt
+        
+  # Execution order and dependencies
+  execution:
+    parallel: false
+    stop_on_error: true
+    retry_failed: false
+    max_retries: 3

@@ -1,0 +1,31 @@
+{
+  "original_stats": {
+    "total_reviews": 1101,
+    "yes_labels": 915,
+    "no_labels": 184,
+    "yes_percentage": 83.10626702997274
+  },
+  "filtered_stats": {
+    "total_kept": 929,
+    "kept_yes": 774,
+    "kept_no": 154,
+    "overall_retention_rate": 84.37783832879201
+  },
+  "confusion_matrix": {
+    "true_positives": 774,
+    "false_positives": 154,
+    "true_negatives": 30,
+    "false_negatives": 141
+  },
+  "performance_metrics": {
+    "accuracy": 0.7302452316076294,
+    "precision": 0.834051724137931,
+    "recall": 0.8459016393442623,
+    "f1_score": 0.8399348887683126
+  },
+  "retention_metrics": {
+    "yes_retention_rate": 84.59016393442623,
+    "no_retention_rate": 83.69565217391305,
+    "selectivity": 15.62216167120799
+  }
+}

@@ -1,0 +1,34 @@
+### This is just a reference document. Its (current) purpose is simply to document the different
+### rules that we are thinking of implementing during the rule-based phase (or if applicable, in
+### some other phase) -- feel free to repurpose in the future!
+
+### It will likely help our case if we are able to provide a justification document for why we
+### chose to implement these rules in specific. Does not have to be a whole new separate doc,
+### instead if we choose to make a slide deck we can incorporate it there.
+
+1. Minimum text length filter rejects reviews with fewer than N characters
+e.g. "ok"
+
+2. Repetition filter flags reviews that repeat the same word or emoji excessively
+e.g. "good good good good goooooooooood 👍👍👍"
+
+3. Link and contact filter flags reviews containing URLs, emails, or phone numbers
+e.g. "visit notascam.com for something that is not a scam"
+
+4. Rating–text mismatch filter flags reviews where sentiment conflicts with the star rating
+e.g. 5★ rating with "food was terrible"
+
+5. Duplicate detection filter flags reviews that are identical or near-duplicate to others at the same location
+e.g. two users posting "Great food and service" on the same café
+
+6. Gibberish filter rejects reviews with meaningless characters or non-language text
+e.g. "aslkdj123###"
+
+7. Keyword blacklist filter flags reviews with spammy terms like "promo code" or "click here"
+e.g. "Use this promo code to get discounts"
+
+8. Location consistency filter flags reviews that mention a different place than the tagged location
+e.g. review for "Starbucks Singapore" saying "This McDonald’s in Jakarta is great"
+
+9. Context consistency filter flags reviews that mention things not relevant to the current Google Place
+e.g. "Awesome alcohol" at McDonald's

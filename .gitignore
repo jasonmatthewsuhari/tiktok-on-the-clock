@@ -1,3 +1,6 @@
+# Data
+*.csv
+
 # Web extension stuff
 web-ext-config.js
 .web-extension-id
