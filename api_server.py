@@ -105,7 +105,7 @@ class SingleRowPipelineExecutor:
         temp_dir.mkdir(exist_ok=True)
         
         temp_file = temp_dir / f"single_review_{self.processing_id}.csv"
-        df.to_csv(temp_file, index=False, encoding='utf-8')
+        df.to_csv(temp_file, index=False, encoding='utf-8', sep=';')
         
         logging.info(f"Created temporary CSV: {temp_file}")
         return str(temp_file)
@@ -192,7 +192,7 @@ class SingleRowPipelineExecutor:
                 
                 # Read stage output for results
                 if os.path.exists(output_file):
-                    stage_df = pd.read_csv(output_file, encoding='utf-8')
+                    stage_df = pd.read_csv(output_file, encoding='utf-8', sep=';')
                     stage_results[stage_name] = {
                         'row_count': len(stage_df),
                         'columns': list(stage_df.columns),
@@ -203,7 +203,7 @@ class SingleRowPipelineExecutor:
                     stage_results[stage_name] = {'error': 'No output file generated'}
             
             # Read final results
-            final_df = pd.read_csv(current_file, encoding='utf-8')
+            final_df = pd.read_csv(current_file, encoding='utf-8', sep=';')
             final_predictions = final_df.iloc[0].to_dict() if len(final_df) > 0 else {}
             
             # Calculate processing time
@@ -330,4 +330,4 @@ if __name__ == "__main__":
     print("📚 API Documentation available at: http://localhost:8000/docs")
     print("🔍 Health check available at: http://localhost:8000/health")
     
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("api_server:app", host="0.0.0.0", port=8000, reload=True)
