@@ -124,6 +124,19 @@ class PipelineExecutor:
             logging.error(f"Error executing stage '{stage_name}': {e}")
             logging.error(traceback.format_exc())
             return False
+        
+    # Add this method to your PipelineExecutor class
+    def get_execution_summary(self) -> Dict[str, Any]:
+        """Get a summary of the pipeline execution."""
+        return {
+            "execution_id": self.execution_id,
+            "config_path": self.config_path,
+            "output_directory": getattr(self, 'execution_output_dir', None),
+            "pipeline_name": self.config.get('pipeline', {}).get('name', 'Unknown'),
+            "stages_count": len(self.config.get('pipeline', {}).get('stages', [])),
+            "timestamp": datetime.now().isoformat()
+        }
+
     
     def run(self):
         """Run the complete pipeline."""
