@@ -30,14 +30,29 @@ pipeline:
         output_file: "data/stage2_output.csv"
         # Output will be saved as: stage2_output_YYYYMMDD_HHMMSS.csv
 
-    - name: "03_evaluation"
-      module: "src.03_evaluation"
+    - name: "03_model_processing"
+      module: "src.03_model_processing"
+      function: "run"
+      enabled: true
+      config:
+        input_file: "data/stage2_output.csv"
+        output_file: "data/stage3_output.csv"
+        model_config:
+          epochs: 3
+          batch_size: 16
+          max_len: 128
+          learning_rate: 0.00002
+          test_size: 0.2
+        # Output: stage3_output.csv with model predictions, trained model, and metrics
+        
+    - name: "04_evaluation"
+      module: "src.04_evaluation"
       function: "run"
       enabled: true
       config:
         input_file: "data/input.csv"
-        stage2_output: "data/stage2_output_*.csv"
-        # Stage 3 will automatically find the most recent stage2_output file
+        stage3_output: "data/stage3_output_*.csv"
+        # Stage 4 will automatically find the most recent stage3_output file
         # Output: evaluation_metrics.json and evaluation_report.txt
         
   # Execution order and dependencies

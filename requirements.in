@@ -3,3 +3,6 @@ pandas
 pyyaml
 pathlib2
 typing-extensions
+torch
+transformers
+scikit-learn

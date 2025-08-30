@@ -1,6 +1,6 @@
 """
-Pipeline Stage 3: Evaluation
-This module evaluates the pipeline performance by comparing filtered results against original labels.
+Pipeline Stage 4: Evaluation
+This module evaluates the pipeline performance by comparing model results against original labels.
 """
 
 import pandas as pd
@@ -220,7 +220,7 @@ def run(config: Dict[str, Any]) -> bool:
     Args:
         config: Configuration dictionary containing:
             - input_file: Path to original input CSV file
-            - stage2_output: Path to stage 2 output (optional, will auto-detect)
+            - stage3_output: Path to stage 3 output (optional, will auto-detect)
             - execution_output_dir: Directory for this execution's outputs
             - execution_id: Unique execution identifier
             
@@ -232,28 +232,28 @@ def run(config: Dict[str, Any]) -> bool:
     execution_output_dir = config['execution_output_dir']
     execution_id = config.get('execution_id', datetime.now().strftime("%Y%m%d_%H%M%S"))
     
-    logging.info(f"Stage 3: Starting evaluation")
+    logging.info(f"Stage 4: Starting evaluation")
     logging.info(f"Original input file: {original_input}")
     logging.info(f"Execution output directory: {execution_output_dir}")
     
-    # Find the stage 2 output file
+    # Find the stage 3 output file
     if execution_output_dir:
-        # Look for stage2_output.csv in the same execution directory
-        stage2_file = str(Path(execution_output_dir) / "stage2_output.csv")
+        # Look for stage3_output.csv in the same execution directory
+        stage3_file = str(Path(execution_output_dir) / "stage3_output.csv")
     else:
-        # Auto-detect latest stage 2 output
-        stage2_pattern = config.get('stage2_output', 'data/stage2_output_*.csv')
-        stage2_file = find_latest_file(stage2_pattern)
+        # Auto-detect latest stage 3 output
+        stage3_pattern = config.get('stage3_output', 'data/stage3_output_*.csv')
+        stage3_file = find_latest_file(stage3_pattern)
     
-    logging.info(f"Using Stage 2 output: {stage2_file}")
+    logging.info(f"Using Stage 3 output: {stage3_file}")
     
     # Load original dataset
     logging.info(f"Loading original dataset from {original_input}")
     original_df = load_original_data(original_input)
     
-    # Load filtered dataset
-    logging.info(f"Loading filtered dataset from {stage2_file}")
-    filtered_df = pd.read_csv(stage2_file, sep=';', encoding='latin-1')
+    # Load model processed dataset
+    logging.info(f"Loading model processed dataset from {stage3_file}")
+    filtered_df = pd.read_csv(stage3_file, sep=';', encoding='latin-1')
     
     # Calculate evaluation metrics
     logging.info("Calculating evaluation metrics...")
