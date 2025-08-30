@@ -127,7 +127,7 @@ def run_pipeline_sync(execution_id: str, config_path: str, override_config: Opti
             execution_tracker[execution_id].completed_at = datetime.now()
             execution_tracker[execution_id].error_message = error_msg
 
-@app.get("/", response_model=Dict[str, str])
+@app.get("/")
 async def root():
     """Root endpoint with API information."""
     return {
@@ -300,10 +300,4 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "app:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-        log_level="info"
-    )
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
