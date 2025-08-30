@@ -258,9 +258,14 @@ def run(config: Dict[str, Any]) -> bool:
         
         # Determine input and output paths
         if execution_output_dir:
-            # Look for stage3_output.csv in the same execution directory
-            stage3_file = Path(execution_output_dir) / "stage3_output.csv"
-            input_file = str(stage3_file)
+            # Look for previous stage output
+            previous_stage = config.get('previous_stage', '02_rule_based_filtering')
+            stage_number = previous_stage.split('_')[0] if previous_stage else '03'
+            previous_output_file = f"stage{stage_number[-1]}_output.csv"
+            
+            stage_input_file = Path(execution_output_dir) / previous_output_file
+            input_file = str(stage_input_file)
+            logging.info(f"Stage 4: Using previous stage ({previous_stage}) output: {input_file}")
             output_file = str(Path(execution_output_dir) / "stage4_output.csv")
             model_output_dir = Path(execution_output_dir)
         else:
@@ -353,7 +358,16 @@ def run(config: Dict[str, Any]) -> bool:
         
         # Add relevance scores to dataframe
         df_valid['relevance_score'] = relevance_scores
-        df_valid['is_relevant'] = (relevance_scores >= relevance_threshold).astype(int)
+        
+        # Use dynamic threshold - remove bottom 50% least relevant
+        if len(relevance_scores) > 0:
+            dynamic_threshold = np.percentile(relevance_scores, 50)  # 50th percentile (median)
+            logging.info(f"Dynamic relevance threshold (50th percentile): {dynamic_threshold:.4f}")
+            logging.info(f"Original static threshold was: {relevance_threshold:.4f}")
+        else:
+            dynamic_threshold = relevance_threshold
+            
+        df_valid['is_relevant'] = (relevance_scores >= dynamic_threshold).astype(int)
         
         # For invalid pairs, set low relevance scores
         if len(df_invalid) > 0:
@@ -371,6 +385,48 @@ def run(config: Dict[str, Any]) -> bool:
         relevant_count = int(df_final['is_relevant'].sum())
         irrelevant_count = len(df_final) - relevant_count
         relevance_rate = relevant_count / len(df_final) * 100
+        
+        # Show examples of relevant and irrelevant pairs
+        logging.info("\n" + "="*80)
+        logging.info("📊 RELEVANCE ANALYSIS EXAMPLES")
+        logging.info("="*80)
+        
+        # Get examples (sort by relevance score for better display)
+        df_sorted = df_final.sort_values('relevance_score', ascending=False)
+        relevant_examples = df_sorted[df_sorted['is_relevant'] == 1].head(10)
+        irrelevant_examples = df_sorted[df_sorted['is_relevant'] == 0].tail(10)  # Get lowest scoring irrelevant
+        
+        if len(relevant_examples) > 0:
+            threshold_used = dynamic_threshold if len(relevance_scores) > 0 else relevance_threshold
+            logging.info(f"\n✅ TOP 10 RELEVANT PAIRS (score >= {threshold_used:.4f}):")
+            logging.info("-" * 60)
+            for i, (_, row) in enumerate(relevant_examples.iterrows(), 1):
+                score = row['relevance_score']
+                text = str(row['text'])[:100] + "..." if len(str(row['text'])) > 100 else str(row['text'])
+                description = str(row['description'])[:80] + "..." if len(str(row['description'])) > 80 else str(row['description'])
+                business = row['business_name']
+                
+                logging.info(f"{i:2d}. Score: {score:.4f} | Business: {business}")
+                logging.info(f"    Review: {text}")
+                logging.info(f"    Description: {description}")
+                logging.info("")
+        
+        if len(irrelevant_examples) > 0:
+            threshold_used = dynamic_threshold if len(relevance_scores) > 0 else relevance_threshold
+            logging.info(f"\n❌ TOP 10 IRRELEVANT PAIRS (score < {threshold_used:.4f}):")
+            logging.info("-" * 60)
+            for i, (_, row) in enumerate(irrelevant_examples.iterrows(), 1):
+                score = row['relevance_score']
+                text = str(row['text'])[:100] + "..." if len(str(row['text'])) > 100 else str(row['text'])
+                description = str(row['description'])[:80] + "..." if len(str(row['description'])) > 80 else str(row['description'])
+                business = row['business_name']
+                
+                logging.info(f"{i:2d}. Score: {score:.4f} | Business: {business}")
+                logging.info(f"    Review: {text}")
+                logging.info(f"    Description: {description}")
+                logging.info("")
+        
+        logging.info("="*80)
         
         # Save results
         df_final.to_csv(output_file, sep=';', index=False, encoding='utf-8')

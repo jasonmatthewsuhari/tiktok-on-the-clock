@@ -103,12 +103,6 @@ def save_model_artifacts(model: BertWithStructured,
                         model_config: Dict[str, Any],
                         metrics: Dict[str, Any],
                         model_hash: str) -> Dict[str, str]:
-    """
-    Save all model artifacts to the models/ directory.
-    
-    Returns:
-        Dict containing paths to saved artifacts
-    """
     models_dir = Path("models")
     models_dir.mkdir(exist_ok=True)
     
@@ -251,9 +245,14 @@ def run(config: Dict[str, Any]) -> bool:
         
         # Determine input and output paths
         if execution_output_dir:
-            # Look for stage2_output.csv in the same execution directory
-            stage2_file = Path(execution_output_dir) / "stage2_output.csv"
-            input_file = str(stage2_file)
+            # Look for previous stage output
+            previous_stage = config.get('previous_stage', '02_rule_based_filtering')
+            stage_number = previous_stage.split('_')[0] if previous_stage else '02'
+            previous_output_file = f"stage{stage_number[-1]}_output.csv"
+            
+            stage_input_file = Path(execution_output_dir) / previous_output_file
+            input_file = str(stage_input_file)
+            logging.info(f"Stage 3: Using previous stage ({previous_stage}) output: {input_file}")
             output_file = str(Path(execution_output_dir) / "stage3_output.csv")
             model_output_dir = Path(execution_output_dir)
         else:

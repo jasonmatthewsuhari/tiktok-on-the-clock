@@ -34,10 +34,14 @@ def run(config: Dict[str, Any]) -> bool:
     
     # Check if we have an execution directory
     if execution_output_dir:
-        # Look for stage1_output.csv in the same execution directory
-        stage1_file = Path(execution_output_dir) / "stage1_output.csv"
-        input_file = str(stage1_file)
-        logging.info(f"Stage 2: Using stage 1 output from execution directory: {input_file}")
+        # Look for previous stage output
+        previous_stage = config.get('previous_stage', '01_take_input_csv')
+        stage_number = previous_stage.split('_')[0] if previous_stage else '01'
+        previous_output_file = f"stage{stage_number[-1]}_output.csv"
+        
+        stage_input_file = Path(execution_output_dir) / previous_output_file
+        input_file = str(stage_input_file)
+        logging.info(f"Stage 2: Using previous stage ({previous_stage}) output: {input_file}")
         
         # Set output to execution directory
         output_file = str(Path(execution_output_dir) / "stage2_output.csv")

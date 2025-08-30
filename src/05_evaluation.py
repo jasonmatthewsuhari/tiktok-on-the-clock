@@ -36,9 +36,9 @@ def load_original_data(input_file: str) -> pd.DataFrame:
     Returns:
         DataFrame: Original dataset with all labels
     """
-    # Load data with UTF-8 encoding and semicolon separator
-    df = pd.read_csv(input_file, sep=';', encoding='utf-8')
-    logging.info(f"Loaded original data with UTF-8 encoding and semicolon separator")
+    # Load data with UTF-8 encoding and comma separator
+    df = pd.read_csv(input_file, encoding='utf-8')
+    logging.info(f"Loaded original data with UTF-8 encoding and comma separator")
     
     return df
 
@@ -53,27 +53,119 @@ def calculate_metrics(original_df: pd.DataFrame, filtered_df: pd.DataFrame) -> D
     Returns:
         Dictionary containing evaluation metrics
     """
-    # Get original label counts
-    original_yes = len(original_df[original_df['Label'] == 'Yes'])
-    original_no = len(original_df[original_df['Label'] == 'No'])
+    # Check what label values exist in the dataset
+    unique_labels = original_df['Label'].value_counts()
+    logging.info(f"Original dataset label distribution: {dict(unique_labels)}")
+    
+    # Map common label variations to standard format
+    label_mapping = {
+        'valid': 'Yes',
+        'invalid': 'No',
+        'error': 'No',  # Treat errors as invalid/No
+        'Valid': 'Yes', 
+        'Invalid': 'No',
+        'Error': 'No',
+        'VALID': 'Yes',
+        'INVALID': 'No',
+        'ERROR': 'No',
+        '1': 'Yes',
+        '0': 'No',
+        1: 'Yes',
+        0: 'No',
+        True: 'Yes',
+        False: 'No'
+    }
+    
+    # Apply label mapping
+    original_df['Label_normalized'] = original_df['Label'].map(label_mapping).fillna(original_df['Label'])
+    
+    # Get original label counts with normalized labels
+    original_yes = len(original_df[original_df['Label_normalized'] == 'Yes'])
+    original_no = len(original_df[original_df['Label_normalized'] == 'No'])
     original_total = len(original_df)
+    
+    logging.info(f"After normalization - Yes: {original_yes}, No: {original_no}, Total: {original_total}")
     
     # Get filtered counts (everything kept should theoretically be "Yes")
     filtered_total = len(filtered_df)
     
-    # Create a mapping from text to original label for comparison
-    original_text_labels = dict(zip(original_df['text'], original_df['Label']))
+    # Use a more reliable matching strategy - try multiple identifiers
+    logging.info("Attempting to match records using available identifiers...")
     
-    # Check how many of the filtered items were originally "Yes" vs "No"
-    kept_yes = 0
-    kept_no = 0
-    
-    for text in filtered_df['text']:
-        original_label = original_text_labels[text]
+    # Try matching by index first (if available)
+    if 'Unnamed: 0' in original_df.columns and 'Unnamed: 0' in filtered_df.columns:
+        logging.info("Using index-based matching...")
+        original_labels = dict(zip(original_df['Unnamed: 0'], original_df['Label_normalized']))
+        
+        kept_yes = 0
+        kept_no = 0
+        matched_count = 0
+        
+        for _, row in filtered_df.iterrows():
+            idx = row['Unnamed: 0']
+            if idx in original_labels:
+                original_label = original_labels[idx]
+                matched_count += 1
+                if original_label == 'Yes':
+                    kept_yes += 1
+                elif original_label == 'No':
+                    kept_no += 1
+        
+        logging.info(f"Matched {matched_count}/{len(filtered_df)} records using index")
+        
+    # Fallback to user_id + business combo if index matching fails
+    elif 'user_id' in original_df.columns and 'gmap_id' in original_df.columns:
+        logging.info("Using user_id + gmap_id matching...")
+        original_labels = {}
+        for _, row in original_df.iterrows():
+            key = f"{row['user_id']}_{row['gmap_id']}"
+            original_labels[key] = row['Label_normalized']
+        
+        kept_yes = 0
+        kept_no = 0
+        matched_count = 0
+        
+        for _, row in filtered_df.iterrows():
+            key = f"{row['user_id']}_{row['gmap_id']}"
+            if key in original_labels:
+                original_label = original_labels[key]
+                matched_count += 1
         if original_label == 'Yes':
             kept_yes += 1
         elif original_label == 'No':
             kept_no += 1
+        
+        logging.info(f"Matched {matched_count}/{len(filtered_df)} records using user_id + gmap_id")
+        
+    # Final fallback to text matching with fuzzy matching
+    else:
+        logging.warning("Using text-based matching (may be unreliable due to text processing)")
+        original_text_labels = {}
+        for _, row in original_df.iterrows():
+            # Use first 50 chars of text as key to handle minor modifications
+            text_key = str(row['text']).strip()[:50]
+            original_text_labels[text_key] = row['Label_normalized']
+        
+        kept_yes = 0
+        kept_no = 0
+        matched_count = 0
+        
+        for _, row in filtered_df.iterrows():
+            text_key = str(row['text']).strip()[:50]
+            if text_key in original_text_labels:
+                original_label = original_text_labels[text_key]
+                matched_count += 1
+                if original_label == 'Yes':
+                    kept_yes += 1
+                elif original_label == 'No':
+                    kept_no += 1
+            else:
+                # If no match found, assume it was originally "No" (conservative)
+                kept_no += 1
+        
+        logging.info(f"Matched {matched_count}/{len(filtered_df)} records using text prefix")
+        if matched_count < len(filtered_df) * 0.8:  # If less than 80% matched
+            logging.warning(f"Low match rate ({matched_count/len(filtered_df):.1%}) - evaluation metrics may be unreliable")
     
     # Calculate metrics
     # True Positives: Correctly kept "Yes" items
@@ -88,16 +180,16 @@ def calculate_metrics(original_df: pd.DataFrame, filtered_df: pd.DataFrame) -> D
     # True Negatives: "No" items that were correctly filtered out
     true_negatives = original_no - kept_no
     
-    # Calculate standard metrics
-    accuracy = (true_positives + true_negatives) / original_total
-    precision = true_positives / (true_positives + false_positives)
-    recall = true_positives / (true_positives + false_negatives)
-    f1_score = 2 * (precision * recall) / (precision + recall)
+    # Calculate standard metrics with proper error handling
+    accuracy = (true_positives + true_negatives) / original_total if original_total > 0 else 0
+    precision = true_positives / (true_positives + false_positives) if (true_positives + false_positives) > 0 else 0
+    recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
+    f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
     
-    # Calculate retention rates
-    overall_retention = filtered_total / original_total
-    yes_retention = kept_yes / original_yes
-    no_retention = kept_no / original_no
+    # Calculate retention rates with proper error handling
+    overall_retention = filtered_total / original_total if original_total > 0 else 0
+    yes_retention = kept_yes / original_yes if original_yes > 0 else 0
+    no_retention = kept_no / original_no if original_no > 0 else 0
     
     metrics = {
         'original_stats': {
@@ -236,16 +328,20 @@ def run(config: Dict[str, Any]) -> bool:
     logging.info(f"Original input file: {original_input}")
     logging.info(f"Execution output directory: {execution_output_dir}")
     
-    # Find the stage 4 output file
+    # Find the previous stage output file
     if execution_output_dir:
-        # Look for stage4_output.csv in the same execution directory
-        stage4_file = str(Path(execution_output_dir) / "stage4_output.csv")
+        # Look for previous stage output
+        previous_stage = config.get('previous_stage', '04_relevance_check')
+        stage_number = previous_stage.split('_')[0] if previous_stage else '04'
+        previous_output_file = f"stage{stage_number[-1]}_output.csv"
+        
+        stage4_file = str(Path(execution_output_dir) / previous_output_file)
+        logging.info(f"Using previous stage ({previous_stage}) output: {stage4_file}")
     else:
         # Auto-detect latest stage 4 output
         stage4_pattern = config.get('stage4_output', 'data/stage4_output_*.csv')
         stage4_file = find_latest_file(stage4_pattern)
-    
-    logging.info(f"Using Stage 4 output: {stage4_file}")
+        logging.info(f"Using Stage 4 output: {stage4_file}")
     
     # Load original dataset
     logging.info(f"Loading original dataset from {original_input}")
