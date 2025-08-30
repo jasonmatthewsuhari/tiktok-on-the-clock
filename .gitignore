@@ -1,5 +1,6 @@
 node_modules/
 tiktok-service-account.json
+data/input.csv
 
 # Python
 __pycache__/
