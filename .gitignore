@@ -1,4 +1,5 @@
 node_modules/
+tiktok-service-account.json
 
 # Python
 __pycache__/
