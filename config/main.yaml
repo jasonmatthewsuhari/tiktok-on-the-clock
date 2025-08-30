@@ -30,14 +30,45 @@ pipeline:
         output_file: "data/stage2_output.csv"
         # Output will be saved as: stage2_output_YYYYMMDD_HHMMSS.csv
 
-    - name: "03_evaluation"
-      module: "src.03_evaluation"
+    - name: "03_model_processing"
+      module: "src.03_model_processing"
+      function: "run"
+      enabled: true
+      config:
+        input_file: "data/stage2_output.csv"
+        output_file: "data/stage3_output.csv"
+        model_config:
+          epochs: 3
+          batch_size: 16
+          max_len: 128
+          learning_rate: 0.00002
+          test_size: 0.2
+        # Output: stage3_output.csv with model predictions, trained model, and metrics
+        
+    - name: "04_relevance_check"
+      module: "src.04_relevance_check"
+      function: "run"
+      enabled: true
+      config:
+        input_file: "data/stage3_output.csv"
+        output_file: "data/stage4_output.csv"
+        relevance_config:
+          method: "cross_encoder"  # or alternatively, "sentence_similarity"
+          threshold: 0.5
+          batch_size: 16
+          cross_encoder_model: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+          sentence_model: "all-MiniLM-L6-v2"
+          use_cache: true
+        # Output: stage4_output.csv with relevance scores and binary relevance flags
+        
+    - name: "05_evaluation"
+      module: "src.05_evaluation"
       function: "run"
       enabled: true
       config:
         input_file: "data/input.csv"
-        stage2_output: "data/stage2_output_*.csv"
-        # Stage 3 will automatically find the most recent stage2_output file
+        stage4_output: "data/stage4_output_*.csv"
+        # Stage 5 will automatically find the most recent stage4_output file
         # Output: evaluation_metrics.json and evaluation_report.txt
         
   # Execution order and dependencies
