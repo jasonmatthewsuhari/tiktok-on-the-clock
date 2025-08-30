@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Review Filter",
-  "version": "1.0",
+  "version": "1.1",
   "description": "A modern extension to filter and highlight text on webpages",
   "permissions": [
     "activeTab",
