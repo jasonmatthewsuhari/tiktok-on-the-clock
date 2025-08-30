@@ -256,9 +256,163 @@ function updateSettings(newSettings) {
   }
 }
 
+// Data extraction functions for pipeline processing
+function extractReviewData() {
+  console.log('Extracting review data from page...');
+  
+  try {
+    const extractedData = {};
+    
+    // Try to extract from common review platforms
+    const url = window.location.href;
+    
+    if (url.includes('google.com/maps') || url.includes('maps.google.com')) {
+      return extractGoogleMapsData();
+    } else if (url.includes('yelp.com')) {
+      return extractYelpData();
+    } else if (url.includes('tripadvisor.com')) {
+      return extractTripAdvisorData();
+    } else {
+      return extractGenericReviewData();
+    }
+    
+  } catch (error) {
+    console.error('Data extraction failed:', error);
+    return null;
+  }
+}
+
+function extractGoogleMapsData() {
+  const data = {};
+  
+  // Business name
+  const businessName = document.querySelector('[data-section-id="oh"] h1')?.textContent?.trim() ||
+                      document.querySelector('h1[class*="fontHeadline"]')?.textContent?.trim() ||
+                      document.querySelector('[role="main"] h1')?.textContent?.trim();
+  if (businessName) data.business_name = businessName;
+  
+  // Business description
+  const description = document.querySelector('[data-section-id="oh"] div[class*="fontBody"]')?.textContent?.trim() ||
+                     document.querySelector('.section-editorial-quote')?.textContent?.trim();
+  if (description) data.description = description;
+  
+  // Address
+  const address = document.querySelector('[data-section-id="ad"] button')?.textContent?.trim() ||
+                 document.querySelector('[data-item-id="address"]')?.textContent?.trim();
+  if (address) data.address = address;
+  
+  // Average rating
+  const avgRating = document.querySelector('[class*="fontDisplay"]')?.textContent?.match(/[\d.]+/)?.[0];
+  if (avgRating) data.avg_rating = parseFloat(avgRating);
+  
+  // Number of reviews
+  const reviewCount = document.querySelector('[class*="fontBody"] [class*="fontBody"]')?.textContent?.match(/[\d,]+/)?.[0];
+  if (reviewCount) data.num_of_reviews = parseInt(reviewCount.replace(/,/g, ''));
+  
+  // Category
+  const category = document.querySelector('[jsaction*="category"]')?.textContent?.trim();
+  if (category) data.category = category;
+  
+  // Try to find individual review data
+  const reviewElements = document.querySelectorAll('[data-review-id], [class*="review"]');
+  if (reviewElements.length > 0) {
+    const firstReview = reviewElements[0];
+    
+    // Author name
+    const authorName = firstReview.querySelector('[class*="author"]')?.textContent?.trim() ||
+                      firstReview.querySelector('button[class*="fontBody"]')?.textContent?.trim();
+    if (authorName) data.author_name = authorName;
+    
+    // Review text
+    const reviewText = firstReview.querySelector('[class*="review-text"]')?.textContent?.trim() ||
+                      firstReview.querySelector('span[class*="fontBody"]')?.textContent?.trim();
+    if (reviewText) data.text = reviewText;
+    
+    // Rating
+    const rating = firstReview.querySelector('[role="img"]')?.getAttribute('aria-label')?.match(/[\d.]+/)?.[0];
+    if (rating) data.rating = parseFloat(rating);
+  }
+  
+  return data;
+}
+
+function extractYelpData() {
+  const data = {};
+  
+  // Business name
+  const businessName = document.querySelector('h1')?.textContent?.trim();
+  if (businessName) data.business_name = businessName;
+  
+  // Description
+  const description = document.querySelector('[class*="business-summary"]')?.textContent?.trim();
+  if (description) data.description = description;
+  
+  // Address
+  const address = document.querySelector('[class*="address"]')?.textContent?.trim();
+  if (address) data.address = address;
+  
+  // Try to extract review data
+  const reviewElements = document.querySelectorAll('[class*="review"]');
+  if (reviewElements.length > 0) {
+    const firstReview = reviewElements[0];
+    
+    const authorName = firstReview.querySelector('[class*="user-name"]')?.textContent?.trim();
+    if (authorName) data.author_name = authorName;
+    
+    const reviewText = firstReview.querySelector('[class*="comment"]')?.textContent?.trim();
+    if (reviewText) data.text = reviewText;
+  }
+  
+  return data;
+}
+
+function extractTripAdvisorData() {
+  const data = {};
+  
+  // Business name
+  const businessName = document.querySelector('[data-automation="hotel-name"], h1')?.textContent?.trim();
+  if (businessName) data.business_name = businessName;
+  
+  // Try to extract review data
+  const reviewElements = document.querySelectorAll('[data-automation="reviewCard"]');
+  if (reviewElements.length > 0) {
+    const firstReview = reviewElements[0];
+    
+    const authorName = firstReview.querySelector('[class*="username"]')?.textContent?.trim();
+    if (authorName) data.author_name = authorName;
+    
+    const reviewText = firstReview.querySelector('[class*="review-text"]')?.textContent?.trim();
+    if (reviewText) data.text = reviewText;
+  }
+  
+  return data;
+}
+
+function extractGenericReviewData() {
+  const data = {};
+  
+  // Try common selectors for business name
+  const businessName = document.querySelector('h1, [class*="business"], [class*="company"], title')?.textContent?.trim();
+  if (businessName) data.business_name = businessName;
+  
+  // Try to find review-like content
+  const reviewElements = document.querySelectorAll('[class*="review"], [class*="comment"], [class*="feedback"]');
+  if (reviewElements.length > 0) {
+    const firstReview = reviewElements[0];
+    const reviewText = firstReview.textContent?.trim();
+    if (reviewText && reviewText.length > 10) {
+      data.text = reviewText;
+      data.author_name = "Anonymous"; // Default for generic extraction
+    }
+  }
+  
+  return data;
+}
+
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Received message:', message);
+  
   if (message.action === 'toggleHighlighting') {
     toggleHighlighting(message.isEnabled, message.speed);
   } else if (message.action === 'updateSettings') {
@@ -269,7 +423,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       clearInterval(highlightInterval);
       toggleHighlighting(true, message.speed);
     }
+  } else if (message.action === 'extractReviewData') {
+    // Extract review data from current page
+    const extractedData = extractReviewData();
+    
+    if (extractedData && Object.keys(extractedData).length > 0) {
+      sendResponse({
+        success: true,
+        data: extractedData
+      });
+    } else {
+      sendResponse({
+        success: false,
+        error: 'No review data found on this page'
+      });
+    }
   }
+  
+  // Return true to indicate we will send a response asynchronously
+  return true;
 });
 
 // Check initial state
