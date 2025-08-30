@@ -18,18 +18,70 @@ The pipeline system consists of:
 ## Directory Structure
 
 ```
-├── main.py                 # Main pipeline executor
+├── main.py                          # Main pipeline executor
 ├── config/
-│   └── main.yaml         # Pipeline configuration
+│   └── main.yaml                    # Pipeline configuration
+|   data/                            # Data input/output directory
+│   └── extract_1000_random_rows.py  # Extracting random rows
+|   └── combine_csv.py               # Combining csv files
+|   └── label_rows.py                # Labeling rows
+├── extension/
+│   └── images
+│   │   ├── generate-icons.js      
+│   │   ├── icon.html
+│   │   ├── icon16.png
+│   │   ├── icon48.png
+│   │   ├── icon128.png
+│   │   ├── package.json            
+│   ├── background.js                
+│   ├── content.js                 
+│   ├── manifest.json               
+│   ├── popup.css
+│   ├── popup.html
+│   ├── popup.js
+│   ├── popup_enhanced.css
+│   ├── popup_enhanced.html
+│   ├── popup_enhanced.js
+├── logs/                            # Pipeline execution logs
+│   ├── pipeline_20250831_014556.txt              
+│   ├── pipeline_20250831_014908.txt             
+│   ├── pipeline_20250831_020449.txt               
+│   ├── pipeline_20250831_020838.txt
+│   ├── pipeline_20250831_021451.txt
+│   ├── pipeline_20250831_021939.txt
+│   ├── pipeline_20250831_022232.txt
+│   ├── pipeline_20250831_022303.txt
+│   ├── pipeline_20250831_023250.txt
+│   ├── pipeline_20250831_023341.txt
+├──models/                            
+│   ├── models_san.ipynb            
+│   ├── relevance_metadata_ccbfefaa4768.json           
+│   ├── relevance_scores_ccbfefaa4768.pkl                     
 ├── src/
-│   ├── 01_take_input_csv.py      # Stage 1: CSV input processing
-│   ├── 02_rule_based_filtering.py # Stage 2: Data filtering
+│   └── __pycache__
+│   │   ├── __init__.cpython-312
+│   │   ├── 01_take_input_csv.cpython-312
+│   │   ├── 02_rule_based_filtering.cpython-312
+│   │   ├── 03_model_processing.cpython-312
+│   │   ├── 04_relevance_check.cpython-312
+│   │   ├── 05_evaluation.cpython-312
+│   ├── 01_take_input_csv.py         # Stage 1: CSV input processing
+│   ├── 02_rule_based_filtering.py   # Stage 2: Data filtering
+│   ├── 03_model_processing          # Stage 3: Model Filtering
+│   ├── 04_relevance_check.py        # Stage 4: Relevance Checking
+│   ├── 05_evaluation.py             # Stage 5: Evaluating
 │   ├── utils/
 │   │   ├── __init__.py
 │   │   └── pipeline_utils.py     # Common utilities
-│   └── __init__.py
-├── data/                  # Data input/output directory
-├── logs/                  # Pipeline execution logs
+│   └── __init__.py      
+├── .gitignore
+├── api_server.py
+├── app.py
+├── main.py
+├── README.py
+├── requirements.in
+├── setup.bash
+├── setup.cmd.exe
 ├── requirements.txt       # Python dependencies
 └── test_pipeline.py      # Test suite
 ```
