@@ -1,0 +1,38 @@
+
+=== PIPELINE EVALUATION REPORT ===
+Execution ID: 20250829_134537
+Generated: 2025-08-29 13:45:40
+
+--- ORIGINAL DATASET STATISTICS ---
+Total Reviews: 1,101
+"Yes" Labels: 915 (83.1%)
+"No" Labels: 184
+
+--- FILTERING RESULTS ---
+Reviews Kept: 929
+Overall Retention Rate: 84.4%
+
+--- DETAILED PERFORMANCE ANALYSIS ---
+Confusion Matrix:
+  True Positives (Correctly kept "Yes"):  774
+  False Positives (Incorrectly kept "No"): 154
+  True Negatives (Correctly filtered "No"): 30
+  False Negatives (Incorrectly filtered "Yes"): 141
+
+Performance Metrics:
+  Accuracy:  0.730 (73.0%)
+  Precision: 0.834 (83.4%)
+  Recall:    0.846 (84.6%)
+  F1-Score:  0.840
+
+Retention Analysis:
+  "Yes" Labels Retained: 84.6%
+  "No" Labels Retained:  83.7%
+  Selectivity (Filtered Out): 15.6%
+
+--- INTERPRETATION ---
+🟠 FAIR: Pipeline shows fair accuracy (≥70%)
+🟡 GOOD PRECISION: Low false positive rate
+🟡 GOOD RECALL: Captures most positive cases
+
+=== END REPORT ===
