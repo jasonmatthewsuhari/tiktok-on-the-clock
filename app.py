@@ -77,6 +77,16 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+        CORSMiddleware,
+    allow_origins=["*"],   # Or restrict to your frontend origin
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 def run_pipeline_sync(execution_id: str, config_path: str, override_config: Optional[Dict[str, Any]] = None):
     """Run pipeline synchronously in background thread."""
     try:
