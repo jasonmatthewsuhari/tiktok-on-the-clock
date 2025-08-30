@@ -200,6 +200,12 @@ def load_business_rules() -> List[Dict[str, Any]]:
             'description': 'Flags reviews that mention things not relevant to the current Google Place',
             'function': 'check_context_consistency',
             'params': {}
+        },
+        {
+            'name': '10. Harsh Words Filter',
+            'description': 'Flags reviews that contains harsh/cursed worfd',
+            'function': 'check_harsh_words',
+            'params': {}
         }
     ]
     
@@ -449,6 +455,27 @@ def check_context_consistency(text: str, business_name: str) -> bool:
             return False
     
     return True
+    
+def check_harsh_words(text: str):
+    """Check if review content contains harsh/cursed words (Rule 10)."""
+    harsh_words_list = [
+    "idiot", "stupid", "dumb", "moron", "loser", "pathetic", "useless", "worthless",
+    "fuck", "fucking", "fucked", "fucker", "motherfucker", "shit", "bullshit", "asshole",
+    "bitch", "bastard", "dick", "prick", "cunt", "slut", "whore", "hoe", "pussy",
+    "scum", "scumbag", "cretin", "jackass", "douche", "douchebag", "clown", "f*ck", "b!tchs"
+    ]
+
+    # Normalize text to lowercase
+    text = text.lower()
+    
+    # Find harsh words
+    matched = [word for word in harsh_words_list if re.search(rf"\b{re.escape(word)}\b", text)]
+    
+    if matched:
+        logging.debug(f"Harsh words detected: {matched}")
+        return False
+    else:
+        return True
 
 def apply_business_rule(df: pd.DataFrame, rule: Dict[str, Any]) -> pd.DataFrame:
     """
