@@ -19,6 +19,38 @@ from datetime import datetime
 import pickle
 import json
 import hashlib
+import time
+import sys
+
+def log_progress(message, force_flush=True):
+    """Log message with immediate flush to both console and file"""
+    logging.info(message)
+    if force_flush:
+        # Force flush all handlers
+        for handler in logging.getLogger().handlers:
+            handler.flush()
+        sys.stdout.flush()
+
+def format_time(seconds):
+    """Format seconds into readable time string"""
+    if seconds < 60:
+        return f"{seconds:.1f}s"
+    elif seconds < 3600:
+        minutes = seconds // 60
+        secs = seconds % 60
+        return f"{int(minutes)}m {secs:.0f}s"
+    else:
+        hours = seconds // 3600
+        minutes = (seconds % 3600) // 60
+        return f"{int(hours)}h {int(minutes)}m"
+
+def create_progress_bar(current, total, width=50):
+    """Create a visual progress bar"""
+    progress = current / total
+    filled = int(width * progress)
+    bar = '█' * filled + '░' * (width - filled)
+    percentage = progress * 100
+    return f"[{bar}] {percentage:.1f}%"
 
 class ReviewDataset(Dataset):
     def __init__(self, texts, structured, labels, tokenizer, max_len):
@@ -292,116 +324,69 @@ def run(config: Dict[str, Any]) -> bool:
             logging.error("No valid data available for model training")
             return False
         
-        # Prepare features
-        numeric_features = []
-        categorical_features = []
+        # Use Model_1.py exact feature configuration
+        numeric_features = ['rating', 'avg_rating', 'num_of_reviews', 'pics']
+        categorical_features = ['category']
         
-        # Check for available numeric features (expanded for new schema + temporal + text quality)
-        potential_numeric = ['rating', 'avg_rating', 'num_of_reviews', 'pics', 'latitude', 'longitude',
-                            'hour_of_day', 'day_of_week', 'month', 'year', 'is_weekend', 
-                            'has_business_response', 'response_length', 'text_length', 'word_count', 
-                            'exclamation_count', 'caps_ratio', 'rating_deviation']
-        for col in potential_numeric:
-            if col in df.columns:
-                # Convert to numeric, filling NaN with 0
-                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-                numeric_features.append(col)
-        
-        # Check for available categorical features (expanded for new schema)
-        potential_categorical = ['category', 'rating_category', 'state', 'price']
-        for col in potential_categorical:
-            if col in df.columns:
-                df[col] = df[col].astype(str).fillna('unknown')
-                # Clean category field if it contains JSON-like data
-                if col == 'category':
-                    df[col] = df[col].str.replace(r'[\[\]\']', '', regex=True)
-                    df[col] = df[col].str.replace(',', ';').fillna('unknown')
-                categorical_features.append(col)
-        
+        logging.info(f"Using Model_1.py feature configuration:")
         logging.info(f"Numeric features: {numeric_features}")
         logging.info(f"Categorical features: {categorical_features}")
         
-        # Preprocessing
-        structured_features = []
+        # Check if required features exist in the data
+        available_numeric = [f for f in numeric_features if f in df.columns]
+        available_categorical = [f for f in categorical_features if f in df.columns]
+        missing_numeric = [f for f in numeric_features if f not in df.columns]
+        missing_categorical = [f for f in categorical_features if f not in df.columns]
         
-        # Scale numeric features
-        if numeric_features:
-            scaler = StandardScaler()
-            df[numeric_features] = scaler.fit_transform(df[numeric_features])
-            structured_features.extend(numeric_features)
-        else:
-            scaler = None
-            
-        # One-hot encode categorical features
-        if categorical_features:
-            encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
-            cat_encoded = encoder.fit_transform(df[categorical_features])
-            cat_encoded_df = pd.DataFrame(cat_encoded, columns=encoder.get_feature_names_out(categorical_features))
+        if missing_numeric:
+            logging.warning(f"Missing numeric features: {missing_numeric}")
+        if missing_categorical:
+            logging.warning(f"Missing categorical features: {missing_categorical}")
+        
+        # Convert to numeric, filling NaN with 0 for available features
+        for col in available_numeric:
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+        
+        # Convert to string, filling NaN with 'unknown' for available features  
+        # Process exactly like Model_1.py (no special cleaning)
+        for col in available_categorical:
+            df[col] = df[col].astype(str).fillna('unknown')
+            logging.info(f"Column '{col}' has {df[col].nunique()} unique values")
+            logging.info(f"Sample {col} values: {df[col].unique()[:10]}")
+        
+        # Numeric scaler (exactly like Model_1.py)
+        scaler = StandardScaler()
+        if available_numeric:
+            df[available_numeric] = scaler.fit_transform(df[available_numeric])
+        
+        # Categorical one-hot (exactly like Model_1.py) 
+        encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+        if available_categorical:
+            cat_encoded = encoder.fit_transform(df[available_categorical])
+            cat_encoded_df = pd.DataFrame(cat_encoded, columns=encoder.get_feature_names_out(available_categorical))
             df = pd.concat([df.reset_index(drop=True), cat_encoded_df.reset_index(drop=True)], axis=1)
-            structured_features.extend(list(cat_encoded_df.columns))
         else:
-            encoder = None
+            cat_encoded_df = pd.DataFrame()
         
-        if not structured_features:
-            logging.warning("No structured features available, using dummy feature")
-            df['dummy_feature'] = 0.0
-            structured_features = ['dummy_feature']
+        # Combine all structured features (exactly like Model_1.py)
+        structured_features = available_numeric + list(cat_encoded_df.columns)
         
+        logging.info(f"Available numeric features: {available_numeric}")
+        logging.info(f"Available categorical features: {available_categorical}")
+        logging.info(f"One-hot encoded categorical columns: {list(cat_encoded_df.columns)}")
+        logging.info(f"Final structured features list: {structured_features}")
         logging.info(f"Total structured features: {len(structured_features)}")
+        
+        # Set device for model loading
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
         # Generate model hash for caching
         model_hash = generate_model_hash(df, model_config, structured_features)
         logging.info(f"Generated model hash: {model_hash}")
         
-        # First check for any existing model artifacts (flexible caching)
-        models_dir = Path("models")
-        encoder_files = list(models_dir.glob("encoder_*.pkl"))
-        scaler_files = list(models_dir.glob("scaler_*.pkl"))
-        model_files = list(models_dir.glob("bert_model_*.pth"))
-        
-        # If artifacts exist, use them regardless of hash
-        if encoder_files and scaler_files and model_files:
-            logging.info("Found existing model artifacts - loading most recent files...")
-            try:
-                # Load the most recent files
-                latest_encoder_file = max(encoder_files, key=lambda x: x.stat().st_mtime)
-                latest_scaler_file = max(scaler_files, key=lambda x: x.stat().st_mtime)
-                latest_model_file = max(model_files, key=lambda x: x.stat().st_mtime)
-                
-                logging.info(f"Loading encoder from: {latest_encoder_file}")
-                logging.info(f"Loading scaler from: {latest_scaler_file}")
-                logging.info(f"Loading model from: {latest_model_file}")
-                
-                # Load encoder
-                with open(latest_encoder_file, 'rb') as f:
-                    cached_encoder = pickle.load(f)
-                
-                # Load scaler
-                with open(latest_scaler_file, 'rb') as f:
-                    cached_scaler = pickle.load(f)
-                
-                # Load model
-                model_checkpoint = torch.load(latest_model_file, map_location=device)
-                model = ReviewClassifier(
-                    bert_model_name='bert-base-uncased',
-                    num_structured_features=len(structured_features),
-                    num_classes=2
-                )
-                model.load_state_dict(model_checkpoint)
-                model.to(device)
-                model.eval()
-                
-                cached_artifacts = (model, cached_scaler, cached_encoder, {'loaded_from': 'existing_files'})
-                logging.info("Successfully loaded existing model artifacts - skipping training")
-                
-            except Exception as e:
-                logging.warning(f"Failed to load existing artifacts: {e}")
-                logging.info("Falling back to hash-based caching...")
-                # Fall back to original hash-based caching
-                cached_artifacts = load_model_artifacts(model_hash)
-        else:
-            # No existing files, try hash-based caching
-            cached_artifacts = load_model_artifacts(model_hash)
+        # Force retraining with improved training process
+        logging.info("Starting fresh model training with current data...")
+        cached_artifacts = None
         
         if cached_artifacts is not None:
             if 'loaded_from' not in str(cached_artifacts[3]):
@@ -487,20 +472,47 @@ def run(config: Dict[str, Any]) -> bool:
             logging.info(f"Using device: {device}")
             logging.info(f"Model has {sum(p.numel() for p in model.parameters())} parameters")
             
-            # Training setup
-            optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
-            criterion = nn.CrossEntropyLoss()
+            # Enhanced training setup
+            optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=0.01, eps=1e-8)
             
-            # Training loop
-            logging.info(f"Starting training for {epochs} epochs")
+            # Learning rate scheduler with warmup
+            from torch.optim.lr_scheduler import LinearLR, CosineAnnealingLR, SequentialLR
+            
+            total_steps = len(train_loader) * epochs
+            warmup_steps = min(100, total_steps // 10)  # 10% warmup or max 100 steps
+            
+            warmup_scheduler = LinearLR(optimizer, start_factor=0.1, total_iters=warmup_steps)
+            cosine_scheduler = CosineAnnealingLR(optimizer, T_max=total_steps - warmup_steps)
+            scheduler = SequentialLR(optimizer, [warmup_scheduler, cosine_scheduler], milestones=[warmup_steps])
+            
+            # Enhanced loss function with class weighting for imbalanced data
+            class_counts = np.bincount(y_train)
+            class_weights = len(y_train) / (len(class_counts) * class_counts)
+            class_weights_tensor = torch.FloatTensor(class_weights).to(device)
+            criterion = nn.CrossEntropyLoss(weight=class_weights_tensor)
+            
+            logging.info(f"Class weights for balanced training: {class_weights}")
+            logging.info(f"Warmup steps: {warmup_steps}, Total steps: {total_steps}")
+            
+            # Training loop with live progress tracking
+            log_progress(f"Starting enhanced training for {epochs} epochs")
             training_history = []
             
+            # Training timing
+            training_start_time = time.time()
+            
             for epoch in range(epochs):
+                epoch_start_time = time.time()
                 model.train()
                 total_loss = 0
                 num_batches = 0
                 
-                for batch in train_loader:
+                log_progress(f"\nEpoch {epoch+1}/{epochs} - Training Phase")
+                log_progress("=" * 60)
+                
+                for batch_idx, batch in enumerate(train_loader):
+                    batch_start_time = time.time()
+                    
                     optimizer.zero_grad()
                     input_ids = batch['input_ids'].to(device)
                     attention_mask = batch['attention_mask'].to(device)
@@ -510,16 +522,106 @@ def run(config: Dict[str, Any]) -> bool:
                     outputs = model(input_ids, attention_mask, structured)
                     loss = criterion(outputs, labels)
                     loss.backward()
+                    
+                    # Gradient clipping to prevent exploding gradients
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                    
                     optimizer.step()
+                    scheduler.step()  # Step the learning rate scheduler
+                    
                     total_loss += loss.item()
                     num_batches += 1
+                    
+                    batch_time = time.time() - batch_start_time
+                    
+                    # Live progress updates every 5% of batches or every 10 batches (whichever is smaller)
+                    update_interval = min(max(1, len(train_loader) // 20), 10)
+                    if batch_idx % update_interval == 0 or batch_idx == len(train_loader) - 1:
+                        progress = (batch_idx + 1) / len(train_loader)
+                        elapsed_epoch = time.time() - epoch_start_time
+                        eta_epoch = elapsed_epoch / progress - elapsed_epoch if progress > 0 else 0
+                        
+                        current_lr = scheduler.get_last_lr()[0]
+                        progress_bar = create_progress_bar(batch_idx + 1, len(train_loader), width=30)
+                        
+                        log_progress(f"  {progress_bar} Batch {batch_idx+1}/{len(train_loader)} | "
+                                   f"Loss: {loss.item():.4f} | LR: {current_lr:.2e} | "
+                                   f"Time: {format_time(batch_time)} | ETA: {format_time(eta_epoch)}")
                 
                 avg_loss = total_loss / num_batches
-                training_history.append({'epoch': epoch + 1, 'loss': avg_loss})
-                logging.info(f"Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.4f}")
+                epoch_train_time = time.time() - epoch_start_time
+                
+                # Validation evaluation every epoch
+                log_progress(f"\nEpoch {epoch+1}/{epochs} - Validation Phase")
+                log_progress("-" * 60)
+                
+                val_start_time = time.time()
+                model.eval()
+                val_loss = 0
+                val_correct = 0
+                val_total = 0
+                
+                with torch.no_grad():
+                    for val_batch_idx, val_batch in enumerate(val_loader):
+                        val_input_ids = val_batch['input_ids'].to(device)
+                        val_attention_mask = val_batch['attention_mask'].to(device)
+                        val_structured = val_batch['structured'].to(device)
+                        val_labels = val_batch['labels'].to(device)
+                        
+                        val_outputs = model(val_input_ids, val_attention_mask, val_structured)
+                        val_loss += criterion(val_outputs, val_labels).item()
+                        
+                        _, predicted = torch.max(val_outputs.data, 1)
+                        val_total += val_labels.size(0)
+                        val_correct += (predicted == val_labels).sum().item()
+                        
+                        # Show validation progress every 20% or every 5 batches
+                        val_update_interval = min(max(1, len(val_loader) // 5), 5)
+                        if val_batch_idx % val_update_interval == 0 or val_batch_idx == len(val_loader) - 1:
+                            val_progress_bar = create_progress_bar(val_batch_idx + 1, len(val_loader), width=30)
+                            current_val_acc = val_correct / val_total if val_total > 0 else 0
+                            log_progress(f"  {val_progress_bar} Val Batch {val_batch_idx+1}/{len(val_loader)} | "
+                                       f"Acc: {current_val_acc:.4f}")
+                
+                val_accuracy = val_correct / val_total
+                avg_val_loss = val_loss / len(val_loader)
+                val_time = time.time() - val_start_time
+                epoch_total_time = time.time() - epoch_start_time
+                
+                # Calculate overall training progress
+                total_training_time = time.time() - training_start_time
+                overall_progress = (epoch + 1) / epochs
+                eta_total = total_training_time / overall_progress - total_training_time if overall_progress > 0 else 0
+                
+                training_history.append({
+                    'epoch': epoch + 1, 
+                    'train_loss': avg_loss, 
+                    'val_loss': avg_val_loss,
+                    'val_accuracy': val_accuracy,
+                    'epoch_time': epoch_total_time
+                })
+                
+                log_progress("=" * 60)
+                log_progress(f"EPOCH {epoch+1}/{epochs} SUMMARY:")
+                log_progress(f"  Train Loss: {avg_loss:.4f} | Val Loss: {avg_val_loss:.4f} | Val Accuracy: {val_accuracy:.4f}")
+                log_progress(f"  Epoch Time: {format_time(epoch_total_time)} (Train: {format_time(epoch_train_time)}, Val: {format_time(val_time)})")
+                log_progress(f"  Overall Progress: {create_progress_bar(epoch + 1, epochs, width=40)}")
+                log_progress(f"  Total Time: {format_time(total_training_time)} | ETA: {format_time(eta_total)}")
+                log_progress("=" * 60)
+                
+                model.train()  # Switch back to training mode
+            
+            # Training completion summary
+            total_training_time = time.time() - training_start_time
+            log_progress("\n" + "*" * 60)
+            log_progress("*** TRAINING COMPLETED SUCCESSFULLY! ***")
+            log_progress(f"Total Training Time: {format_time(total_training_time)}")
+            log_progress(f"Final Validation Accuracy: {val_accuracy:.4f}")
+            log_progress(f"Best Epoch: {max(training_history, key=lambda x: x['val_accuracy'])['epoch']}")
+            log_progress("*" * 60 + "\n")
             
             # Evaluation
-            logging.info("Starting model evaluation")
+            log_progress("Starting final model evaluation on validation set...")
             model.eval()
             all_preds = []
             all_labels = []

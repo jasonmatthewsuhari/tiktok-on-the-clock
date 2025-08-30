@@ -491,8 +491,8 @@ def apply_business_rule(df: pd.DataFrame, rule: Dict[str, Any]) -> pd.DataFrame:
     filtered_df = df[mask].copy()
     filtered_count = initial_count - len(filtered_df)
     
-    logging.info(f"  → Filtered out {filtered_count} reviews ({filtered_count/initial_count*100:.1f}%)" if initial_count > 0 else f"  → Filtered out {filtered_count} reviews (0.0%)")
-    logging.info(f"  → Reviews remaining: {len(filtered_df)}")
+    logging.info(f"  -> Filtered out {filtered_count} reviews ({filtered_count/initial_count*100:.1f}%)" if initial_count > 0 else f"  -> Filtered out {filtered_count} reviews (0.0%)")
+    logging.info(f"  -> Reviews remaining: {len(filtered_df)}")
     
     return filtered_df
 

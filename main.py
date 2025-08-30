@@ -207,7 +207,7 @@ class PipelineExecutor:
         for i, stage in enumerate(filtered_stages, 1):
             stage_name = stage.get('name', 'Unknown')
             display_name = stage.get('display_name', stage_name)
-            logging.info(f"\n📋 Processing stage {i}/{len(filtered_stages)}: {display_name}")
+            logging.info(f"\nProcessing stage {i}/{len(filtered_stages)}: {display_name}")
             
             # Add previous stage info to the stage config
             enhanced_stage = stage.copy()
