@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Review Filter",
-  "version": "1.0",
+  "version": "1.1",
   "description": "A modern extension to filter and highlight text on webpages",
   "permissions": [
     "activeTab",
@@ -12,7 +12,7 @@
     "http://localhost:8000/*"
   ],
   "action": {
-    "default_popup": "popup_enhanced.html",
+    "default_popup": "popup.html",
     "default_icon": {
       "16": "images/icon16.png",
       "48": "images/icon48.png",

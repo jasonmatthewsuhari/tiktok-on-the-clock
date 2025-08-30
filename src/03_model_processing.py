@@ -353,11 +353,59 @@ def run(config: Dict[str, Any]) -> bool:
         model_hash = generate_model_hash(df, model_config, structured_features)
         logging.info(f"Generated model hash: {model_hash}")
         
-        # Check if model already exists in cache
-        cached_artifacts = load_model_artifacts(model_hash)
+        # First check for any existing model artifacts (flexible caching)
+        models_dir = Path("models")
+        encoder_files = list(models_dir.glob("encoder_*.pkl"))
+        scaler_files = list(models_dir.glob("scaler_*.pkl"))
+        model_files = list(models_dir.glob("bert_model_*.pth"))
+        
+        # If artifacts exist, use them regardless of hash
+        if encoder_files and scaler_files and model_files:
+            logging.info("Found existing model artifacts - loading most recent files...")
+            try:
+                # Load the most recent files
+                latest_encoder_file = max(encoder_files, key=lambda x: x.stat().st_mtime)
+                latest_scaler_file = max(scaler_files, key=lambda x: x.stat().st_mtime)
+                latest_model_file = max(model_files, key=lambda x: x.stat().st_mtime)
+                
+                logging.info(f"Loading encoder from: {latest_encoder_file}")
+                logging.info(f"Loading scaler from: {latest_scaler_file}")
+                logging.info(f"Loading model from: {latest_model_file}")
+                
+                # Load encoder
+                with open(latest_encoder_file, 'rb') as f:
+                    cached_encoder = pickle.load(f)
+                
+                # Load scaler
+                with open(latest_scaler_file, 'rb') as f:
+                    cached_scaler = pickle.load(f)
+                
+                # Load model
+                model_checkpoint = torch.load(latest_model_file, map_location=device)
+                model = ReviewClassifier(
+                    bert_model_name='bert-base-uncased',
+                    num_structured_features=len(structured_features),
+                    num_classes=2
+                )
+                model.load_state_dict(model_checkpoint)
+                model.to(device)
+                model.eval()
+                
+                cached_artifacts = (model, cached_scaler, cached_encoder, {'loaded_from': 'existing_files'})
+                logging.info("Successfully loaded existing model artifacts - skipping training")
+                
+            except Exception as e:
+                logging.warning(f"Failed to load existing artifacts: {e}")
+                logging.info("Falling back to hash-based caching...")
+                # Fall back to original hash-based caching
+                cached_artifacts = load_model_artifacts(model_hash)
+        else:
+            # No existing files, try hash-based caching
+            cached_artifacts = load_model_artifacts(model_hash)
         
         if cached_artifacts is not None:
-            logging.info("Found cached model! Loading existing artifacts instead of training...")
+            if 'loaded_from' not in str(cached_artifacts[3]):
+                logging.info("Found cached model! Loading existing artifacts instead of training...")
             model, cached_scaler, cached_encoder, cached_metadata = cached_artifacts
             
             # Use cached preprocessors if they exist, otherwise create new ones
