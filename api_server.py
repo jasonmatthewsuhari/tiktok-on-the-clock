@@ -105,7 +105,7 @@ class SingleRowPipelineExecutor:
         temp_dir.mkdir(exist_ok=True)
         
         temp_file = temp_dir / f"single_review_{self.processing_id}.csv"
-        df.to_csv(temp_file, index=False, encoding='utf-8', sep=';')
+        df.to_csv(temp_file, index=False, encoding='utf-8')
         
         logging.info(f"Created temporary CSV: {temp_file}")
         return str(temp_file)
@@ -137,24 +137,32 @@ class SingleRowPipelineExecutor:
                     enhanced_config['input_file'] = input_file
                     enhanced_config['output_file'] = output_file
                     enhanced_config['execution_id'] = self.processing_id
+                    # Set execution_output_dir to avoid file search issues
+                    enhanced_config['execution_output_dir'] = str(Path("temp_api"))
+                    
+                    logging.info(f"Executing {stage_name} with config: {enhanced_config}")
                     
                     # Execute the function
                     result = func(enhanced_config)
-                    logging.info(f"Stage '{stage_name}' completed successfully")
+                    logging.info(f"Stage '{stage_name}' completed with result: {result}")
                     return result
                 else:
-                    logging.error(f"'{function_name}' in module '{module_name}' is not callable")
-                    return False
+                    error_msg = f"'{function_name}' in module '{module_name}' is not callable"
+                    logging.error(error_msg)
+                    raise ValueError(error_msg)
             else:
-                logging.error(f"Function '{function_name}' not found in module '{module_name}'")
-                return False
+                error_msg = f"Function '{function_name}' not found in module '{module_name}'"
+                logging.error(error_msg)
+                raise AttributeError(error_msg)
                 
         except ImportError as e:
-            logging.error(f"Failed to import module '{module_name}': {e}")
-            return False
+            error_msg = f"Failed to import module '{module_name}': {e}"
+            logging.error(error_msg)
+            raise ImportError(error_msg)
         except Exception as e:
-            logging.error(f"Error executing stage '{stage_name}': {e}")
-            return False
+            error_msg = f"Error executing stage '{stage_name}': {e}"
+            logging.error(error_msg)
+            raise Exception(error_msg)
     
     def process_single_review(self, review_data: ReviewInput) -> Dict[str, Any]:
         """Process a single review through the entire pipeline."""
@@ -180,15 +188,30 @@ class SingleRowPipelineExecutor:
                 
                 # Determine output file for this stage
                 temp_dir = Path("temp_api")
-                output_file = str(temp_dir / f"stage_{i}_output_{self.processing_id}.csv")
+                
+                # For stage 1, copy input to expected name
+                if i == 1:
+                    expected_input = temp_dir / "stage1_output.csv"
+                    if current_file != str(expected_input):
+                        import shutil
+                        shutil.copy2(current_file, expected_input)
+                        current_file = str(expected_input)
+                
+                # Set standard output file name
+                output_file = str(temp_dir / f"stage{i}_output.csv")
                 
                 logging.info(f"Processing stage {i}/{len(stages)}: {stage_name}")
                 
                 # Execute stage
-                success = self._execute_stage(stage, current_file, output_file)
-                
-                if not success:
-                    raise RuntimeError(f"Stage '{stage_name}' failed")
+                try:
+                    success = self._execute_stage(stage, current_file, output_file)
+                    
+                    if not success:
+                        raise RuntimeError(f"Stage '{stage_name}' returned False")
+                        
+                except Exception as stage_error:
+                    logging.error(f"Stage '{stage_name}' failed with error: {stage_error}")
+                    raise RuntimeError(f"Stage '{stage_name}' failed: {str(stage_error)}")
                 
                 # Read stage output for results
                 if os.path.exists(output_file):

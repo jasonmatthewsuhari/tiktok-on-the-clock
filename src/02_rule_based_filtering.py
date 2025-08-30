@@ -98,7 +98,7 @@ def run(config: Dict[str, Any]) -> bool:
     # Final summary
     final_count = len(df)
     filtered_count = initial_count - final_count
-    retention_rate = (final_count / initial_count) * 100
+    retention_rate = (final_count / initial_count) * 100 if initial_count > 0 else 0
     
     logging.info(f"\n=== Stage 2 Business Rule Filtering Summary ===")
     logging.info(f"  Initial reviews: {initial_count:,}")
@@ -373,7 +373,7 @@ def check_gibberish(text: str, gibberish_threshold: float = 0.4) -> bool:
     
     # Check for random character sequences
     words = text.split()
-    avg_word_length = sum(len(word) for word in words) / len(words)
+    avg_word_length = sum(len(word) for word in words) / len(words) if len(words) > 0 else 0
     if avg_word_length > 15:  # Unusually long "words"
         logging.debug(f"Unusually long average word length: {avg_word_length}")
         return False
@@ -487,7 +487,7 @@ def apply_business_rule(df: pd.DataFrame, rule: Dict[str, Any]) -> pd.DataFrame:
     filtered_df = df[mask].copy()
     filtered_count = initial_count - len(filtered_df)
     
-    logging.info(f"  → Filtered out {filtered_count} reviews ({filtered_count/initial_count*100:.1f}%)")
+    logging.info(f"  → Filtered out {filtered_count} reviews ({filtered_count/initial_count*100:.1f}%)" if initial_count > 0 else f"  → Filtered out {filtered_count} reviews (0.0%)")
     logging.info(f"  → Reviews remaining: {len(filtered_df)}")
     
     return filtered_df

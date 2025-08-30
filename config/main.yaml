@@ -64,7 +64,7 @@ pipeline:
     - name: "05_evaluation"
       module: "src.05_evaluation"
       function: "run"
-      enabled: true
+      enabled: false
       config:
         input_file: "data/input.csv"
         stage4_output: "data/stage4_output_*.csv"
