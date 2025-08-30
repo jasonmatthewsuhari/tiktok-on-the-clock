@@ -21,12 +21,29 @@
       </div>
       
       <div class="side-icons">
-        <button class="icon-button settings-button">
-          <i class="ri-settings-line"></i>
+        <button class="icon-button detect-button" id="detectReviews" title="Detect & Highlight Reviews">
+          <i class="ri-search-eye-line"></i>
         </button>
-        <button class="icon-button document-button">
-          <i class="ri-file-text-line"></i>
+        <button class="icon-button extract-button" id="extractReview" title="Extract Review Data">
+          <i class="ri-file-download-line"></i>
         </button>
+        <button class="icon-button analyze-button" id="analyzePage" title="Analyze Page">
+          <i class="ri-bar-chart-line"></i>
+        </button>
+        <button class="icon-button clear-button" id="clearHighlights" title="Clear Highlights">
+          <i class="ri-eraser-line"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Status display for review detection - MOVED OUTSIDE main-content -->
+    <div class="review-status" id="reviewStatus" style="display: none;">
+      <div class="status-header">
+        <i class="ri-eye-line"></i>
+        <span>Review Detection</span>
+      </div>
+      <div class="status-content" id="reviewStatusContent">
+        <!-- Dynamic content will be inserted here -->
       </div>
     </div>
 

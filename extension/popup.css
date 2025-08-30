@@ -34,8 +34,11 @@
 }
 
 body {
-  width: 420px;
-  min-height: 320px;
+  width: 400px;
+  min-height: 500px;
+  max-height: 600px;
+  overflow-y: auto;
+  overflow-x: hidden;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: 
     radial-gradient(circle at 20% 80%, rgba(37, 244, 238, 0.08) 0%, transparent 50%),
@@ -44,7 +47,6 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   font-weight: 400;
-  overflow: hidden;
   position: relative;
 }
 
@@ -57,10 +59,9 @@ body::before {
 }
 
 .container {
-  padding: 24px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  min-height: 320px;
   position: relative;
 }
 
@@ -342,7 +343,7 @@ body::before {
 .side-icons {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
 }
 
@@ -420,10 +421,12 @@ body::before {
 }
 
 .footer {
-  margin-top: 12px;
+  margin-top: 16px;
+  margin-bottom: 16px;
   text-align: center;
   position: relative;
   z-index: 2;
+  flex-shrink: 0;
 }
 
 .footer-content {
@@ -647,6 +650,320 @@ body::before {
       0 0 18px rgba(37, 244, 238, 0.35),
       inset 0 1px 0 rgba(255, 255, 255, 0.4);
   }
+}
+
+/* Review Detection Button Styles */
+.detect-button {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.8), rgba(22, 163, 74, 0.9));
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.detect-button:hover {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.9), rgba(22, 163, 74, 1));
+  box-shadow: 
+    0 8px 16px rgba(34, 197, 94, 0.3),
+    0 0 20px rgba(34, 197, 94, 0.4);
+}
+
+.extract-button {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(37, 99, 235, 0.9));
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.extract-button:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 1));
+  box-shadow: 
+    0 8px 16px rgba(59, 130, 246, 0.3),
+    0 0 20px rgba(59, 130, 246, 0.4);
+}
+
+.analyze-button {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.8), rgba(217, 119, 6, 0.9));
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.analyze-button:hover {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.9), rgba(217, 119, 6, 1));
+  box-shadow: 
+    0 8px 16px rgba(245, 158, 11, 0.3),
+    0 0 20px rgba(245, 158, 11, 0.4);
+}
+
+.clear-button {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.8), rgba(220, 38, 38, 0.9));
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.clear-button:hover {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(220, 38, 38, 1));
+  box-shadow: 
+    0 8px 16px rgba(239, 68, 68, 0.3),
+    0 0 20px rgba(239, 68, 68, 0.4);
+}
+
+/* Review Status Display */
+.review-status {
+  background: 
+    linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%),
+    rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 16px;
+  margin: 16px 18px;
+  position: relative;
+  z-index: 2;
+  animation: slideIn 0.3s ease-out;
+  width: calc(100% - 36px);
+  box-sizing: border-box;
+}
+
+.status-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.status-content {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.status-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.status-message.loading {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.status-message.success {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.status-message.error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.review-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.confidence {
+  background: rgba(34, 197, 94, 0.8);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  min-width: 35px;
+  text-align: center;
+  font-size: 10px;
+}
+
+.review-text {
+  flex: 1;
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.data-item {
+  display: flex;
+  gap: 8px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  margin-bottom: 3px;
+  font-size: 11px;
+}
+
+.data-key {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  min-width: 80px;
+}
+
+.data-value {
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.analysis-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  margin-bottom: 3px;
+  font-size: 11px;
+}
+
+.analysis-label {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.analysis-value {
+  opacity: 0.8;
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rotating {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rotating {
+  animation: rotating 1s linear infinite;
+}
+
+/* AI Validation Result Styles */
+.validation-result {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.validation-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.validation-status {
+  text-align: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.validation-status.valid {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.validation-status.invalid {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+.validation-status strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.confidence {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.validation-probabilities {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.prob-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 11px;
+}
+
+.prob-label {
+  opacity: 0.7;
+  margin-bottom: 2px;
+}
+
+.prob-value {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.validation-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.review-preview {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.8);
+  border-left: 3px solid rgba(59, 130, 246, 0.5);
+}
+
+/* Custom Scrollbar Styling */
+body::-webkit-scrollbar {
+  width: 8px;
+}
+
+body::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+body::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, rgba(37, 244, 238, 0.6), rgba(37, 244, 238, 0.8));
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, rgba(37, 244, 238, 0.8), rgba(37, 244, 238, 1));
 }
 
 /* Loading animation for the entire popup */
