@@ -388,7 +388,7 @@ def run(config: Dict[str, Any]) -> bool:
         
         # Show examples of relevant and irrelevant pairs
         logging.info("\n" + "="*80)
-        logging.info("📊 RELEVANCE ANALYSIS EXAMPLES")
+        logging.info("RELEVANCE ANALYSIS EXAMPLES")
         logging.info("="*80)
         
         # Get examples (sort by relevance score for better display)
@@ -398,7 +398,7 @@ def run(config: Dict[str, Any]) -> bool:
         
         if len(relevant_examples) > 0:
             threshold_used = dynamic_threshold if len(relevance_scores) > 0 else relevance_threshold
-            logging.info(f"\n✅ TOP 10 RELEVANT PAIRS (score >= {threshold_used:.4f}):")
+            logging.info(f"\nTOP 10 RELEVANT PAIRS (score >= {threshold_used:.4f}):")
             logging.info("-" * 60)
             for i, (_, row) in enumerate(relevant_examples.iterrows(), 1):
                 score = row['relevance_score']
@@ -413,7 +413,7 @@ def run(config: Dict[str, Any]) -> bool:
         
         if len(irrelevant_examples) > 0:
             threshold_used = dynamic_threshold if len(relevance_scores) > 0 else relevance_threshold
-            logging.info(f"\n❌ TOP 10 IRRELEVANT PAIRS (score < {threshold_used:.4f}):")
+            logging.info(f"\nTOP 10 IRRELEVANT PAIRS (score < {threshold_used:.4f}):")
             logging.info("-" * 60)
             for i, (_, row) in enumerate(irrelevant_examples.iterrows(), 1):
                 score = row['relevance_score']

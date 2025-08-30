@@ -31,19 +31,32 @@ pipeline:
         # Output will be saved as: stage2_output_YYYYMMDD_HHMMSS.csv
 
     - name: "03_model_processing"
-      module: "src.03_model_processing"
+      module: "src.03_model_processing_v3"
       function: "run"
       enabled: true
+      display_name: "Rigorous ML Pipeline (Ensemble Classification on Rule-Filtered Data)"
       config:
         input_file: "data/stage2_output.csv"
         output_file: "data/stage3_output.csv"
         model_config:
-          epochs: 3
-          batch_size: 16
-          max_len: 128
-          learning_rate: 0.00002
-          test_size: 0.2
-        # Output: stage3_output.csv with model predictions, trained model, and metrics
+          # Rigorous ML configuration
+          use_cached_models: true  # Load existing models if available
+          ensemble_models:
+            - logistic_regression
+            - random_forest  
+            - lightgbm
+          text_representations:
+            - tfidf_word
+            - tfidf_char
+            - hashing_vectorizer
+            - svd_compression
+            - lda_topics
+            - sentence_embeddings
+          validation:
+            cv_folds: 5
+            test_size: 0.2
+            calibration_method: "isotonic"
+        # Output: stage3_output.csv with ML predictions, probabilities, confidence scores + saved .pkl models
         
     - name: "04_relevance_check"
       module: "src.04_relevance_check"
