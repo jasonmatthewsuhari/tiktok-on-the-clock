@@ -203,7 +203,7 @@ def load_business_rules() -> List[Dict[str, Any]]:
         },
         {
             'name': '10. Harsh Words Filter',
-            'description': 'Flags reviews that contains harsh/cursed worfd',
+            'description': 'Flags reviews that contains harsh/cursed word',
             'function': 'check_harsh_words',
             'params': {}
         }
@@ -513,6 +513,8 @@ def apply_business_rule(df: pd.DataFrame, rule: Dict[str, Any]) -> pd.DataFrame:
         mask = df.apply(lambda row: check_location_consistency(row['text'], row['business_name']), axis=1)
     elif rule_func == 'check_context_consistency':
         mask = df.apply(lambda row: check_context_consistency(row['text'], row['business_name']), axis=1)
+    elif rule_func == 'check_harsh_words':
+        mask = df['text'].apply(check_harsh_words)
     
     # Apply the filter - keep only rows that pass the rule
     filtered_df = df[mask].copy()
