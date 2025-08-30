@@ -6,3 +6,4 @@ typing-extensions
 torch
 transformers
 scikit-learn
+sentence-transformers

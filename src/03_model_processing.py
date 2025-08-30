@@ -267,7 +267,7 @@ def run(config: Dict[str, Any]) -> bool:
         logging.info(f"Stage 3: Model output will be saved to {output_file}")
         
         # Load data from stage 2
-        df = pd.read_csv(input_file, sep=';', encoding='latin-1')
+        df = pd.read_csv(input_file, sep=';', encoding='utf-8')
         initial_count = len(df)
         logging.info(f"Loaded {initial_count} reviews from stage 2")
         
@@ -297,19 +297,26 @@ def run(config: Dict[str, Any]) -> bool:
         numeric_features = []
         categorical_features = []
         
-        # Check for available numeric features
-        potential_numeric = ['rating', 'avg_rating', 'num_of_reviews', 'pics']
+        # Check for available numeric features (expanded for new schema + temporal + text quality)
+        potential_numeric = ['rating', 'avg_rating', 'num_of_reviews', 'pics', 'latitude', 'longitude',
+                            'hour_of_day', 'day_of_week', 'month', 'year', 'is_weekend', 
+                            'has_business_response', 'response_length', 'text_length', 'word_count', 
+                            'exclamation_count', 'caps_ratio', 'rating_deviation']
         for col in potential_numeric:
             if col in df.columns:
                 # Convert to numeric, filling NaN with 0
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
                 numeric_features.append(col)
         
-        # Check for available categorical features
-        potential_categorical = ['category', 'rating_category']
+        # Check for available categorical features (expanded for new schema)
+        potential_categorical = ['category', 'rating_category', 'state', 'price']
         for col in potential_categorical:
             if col in df.columns:
                 df[col] = df[col].astype(str).fillna('unknown')
+                # Clean category field if it contains JSON-like data
+                if col == 'category':
+                    df[col] = df[col].str.replace(r'[\[\]\']', '', regex=True)
+                    df[col] = df[col].str.replace(',', ';').fillna('unknown')
                 categorical_features.append(col)
         
         logging.info(f"Numeric features: {numeric_features}")
@@ -318,7 +325,23 @@ def run(config: Dict[str, Any]) -> bool:
         # Preprocessing
         structured_features = []
         
-
+        # Scale numeric features
+        if numeric_features:
+            scaler = StandardScaler()
+            df[numeric_features] = scaler.fit_transform(df[numeric_features])
+            structured_features.extend(numeric_features)
+        else:
+            scaler = None
+            
+        # One-hot encode categorical features
+        if categorical_features:
+            encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+            cat_encoded = encoder.fit_transform(df[categorical_features])
+            cat_encoded_df = pd.DataFrame(cat_encoded, columns=encoder.get_feature_names_out(categorical_features))
+            df = pd.concat([df.reset_index(drop=True), cat_encoded_df.reset_index(drop=True)], axis=1)
+            structured_features.extend(list(cat_encoded_df.columns))
+        else:
+            encoder = None
         
         if not structured_features:
             logging.warning("No structured features available, using dummy feature")
@@ -378,21 +401,7 @@ def run(config: Dict[str, Any]) -> bool:
             logging.info("No cached model found. Starting training process...")
             skip_training = False
             
-            # Process features as before (this code will only run if no cache found)
-            if numeric_features:
-                scaler = StandardScaler()
-                df[numeric_features] = scaler.fit_transform(df[numeric_features])
-            else:
-                scaler = None
-                
-            if categorical_features:
-                encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
-                cat_encoded = encoder.fit_transform(df[categorical_features])
-                cat_encoded_df = pd.DataFrame(cat_encoded, columns=encoder.get_feature_names_out(categorical_features))
-                df = pd.concat([df.reset_index(drop=True), cat_encoded_df.reset_index(drop=True)], axis=1)
-                structured_features.extend(list(cat_encoded_df.columns))
-            else:
-                encoder = None
+
         
         # Initialize BERT tokenizer
         tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -530,7 +539,7 @@ def run(config: Dict[str, Any]) -> bool:
         df['model_prob_invalid'] = [prob[1] for prob in all_full_probs]
         
         # Save results
-        df.to_csv(output_file, sep=';', index=False, encoding='latin-1')
+        df.to_csv(output_file, sep=';', index=False, encoding='utf-8')
         logging.info(f"Stage 3: Saved {len(df)} rows with predictions to {output_file}")
         
         # Save evaluation metrics to execution directory

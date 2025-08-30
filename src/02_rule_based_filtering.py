@@ -57,21 +57,33 @@ def run(config: Dict[str, Any]) -> bool:
     logging.info(f"Stage 2: Output will be saved to {output_file}")
     
     # Load data from stage 1
-    df = pd.read_csv(input_file, sep=';', encoding='latin-1')
-    logging.info(f"Loaded data with Latin-1 encoding and semicolon separator")
+    df = pd.read_csv(input_file, sep=';', encoding='utf-8')
+    logging.info(f"Loaded data with UTF-8 encoding and semicolon separator")
     
     initial_count = len(df)
     logging.info(f"Loaded {initial_count} reviews from stage 1")
     
-    # Validate expected columns
-    expected_columns = ['business_name', 'author_name', 'text', 'photo', 'rating', 'rating_category', 'Label']
+    # Validate expected columns (updated for new schema)
+    expected_columns = ['business_name', 'author_name', 'text', 'pics', 'rating']
     available_columns = list(df.columns)
     logging.info(f"Available columns: {available_columns}")
+    
+    # Map pics column if needed (renamed from photo)
+    if 'pics' not in df.columns and 'photo' in df.columns:
+        df['pics'] = df['photo']
     
     # Convert data types
     df['rating'] = pd.to_numeric(df['rating'], errors='coerce')
     df['text'] = df['text'].astype(str)
     df['business_name'] = df['business_name'].astype(str)
+    
+    # Handle new rich features
+    if 'avg_rating' in df.columns:
+        df['avg_rating'] = pd.to_numeric(df['avg_rating'], errors='coerce')
+    if 'num_of_reviews' in df.columns:
+        df['num_of_reviews'] = pd.to_numeric(df['num_of_reviews'], errors='coerce')
+    if 'category' in df.columns:
+        df['category'] = df['category'].astype(str).fillna('unknown')
     
     # Load business rules
     rules = load_business_rules()
@@ -99,7 +111,7 @@ def run(config: Dict[str, Any]) -> bool:
     df['retention_rate'] = retention_rate
     
     # Save filtered data
-    df.to_csv(output_file, sep=';', index=False, encoding='latin-1')
+    df.to_csv(output_file, sep=';', index=False, encoding='utf-8')
     
     logging.info(f"Stage 2: Saved {len(df):,} high-quality reviews to {output_file}")
     
