@@ -5,7 +5,7 @@ import re
 from openai import OpenAI
 
 client = OpenAI(
-            api_key="sk-8c02cad1fe31455ea8de173c8c87cdb9",
+            api_key="INSERT API KEY",
     base_url="https://api.deepseek.com"
 )
 # -------------------------
