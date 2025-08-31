@@ -46,6 +46,7 @@ tiktok-on-the-clock/
 ├── 🚀 app.py                      # FastAPI application server
 ├── 🌐 api_server.py               # Alternative API server
 ├── 📊 analyze_reviewer_distribution.py  # Analytics tools
+├── 📈 EDA.ipynb                   # Exploratory Data Analysis (EDA)
 ├── 🏃 run_reviewer_analysis.py    # Quick analysis runner
 │
 ├── 📂 config/
