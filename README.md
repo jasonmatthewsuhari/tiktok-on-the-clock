@@ -71,6 +71,11 @@ tiktok-on-the-clock/
 │   ├── input.csv                  # Input reviews
 │   └── output/                    # Processed results
 │
+├── ⚠️ labels/                    # Label pipeline
+│   ├── combine_csv.py             # CSV combining
+│   └── extract_1000_rows.py       # Random rows extraction
+│   └── label_rows.py              # Rows labelling
+│
 ├── 🤖 models/                     # Trained ML models
 ├── 📝 logs/                       # Execution logs
 └── 📋 requirements.txt            # Python dependencies
