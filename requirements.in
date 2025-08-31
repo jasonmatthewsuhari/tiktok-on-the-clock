@@ -7,3 +7,7 @@ torch
 transformers
 scikit-learn
 sentence-transformers
+lightgbm
+scipy
+nltk
+textstat
